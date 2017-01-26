@@ -132,7 +132,7 @@ class BaseRequest(collections.MutableMapping, HeadersMixin):
 
         'http' or 'https'.
         """
-        warnings.warn("scheme is deprecated, "
+        warnings.warn("scheme property is deprecated, "
                       "use .url.scheme instead",
                       DeprecationWarning)
         return self.url.scheme
