@@ -28,6 +28,18 @@ except ImportError:  # pragma: no cover
     ssl = None
 
 
+if ssl is not None:
+    _SSL_OP_NO_COMPRESSION = getattr(ssl, "OP_NO_COMPRESSION", 0)
+
+    default_ssl_context = ssl.create_default_context()
+
+    no_verify_ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    no_verify_ssl_context.options |= ssl.OP_NO_SSLv2
+    no_verify_ssl_context.options |= ssl.OP_NO_SSLv3
+    no_verify_ssl_context.options |= _SSL_OP_NO_COMPRESSION
+    no_verify_ssl_context.set_default_verify_paths()
+
+
 __all__ = ('BaseConnector', 'TCPConnector', 'UnixConnector')
 
 HASHFUNC_BY_DIGESTLEN = {
@@ -494,9 +506,6 @@ class BaseConnector(object):
         raise NotImplementedError()
 
 
-_SSL_OP_NO_COMPRESSION = getattr(ssl, "OP_NO_COMPRESSION", 0)
-
-
 class _DNSCacheTable:
 
     def __init__(self, ttl=None):
@@ -643,13 +652,9 @@ class TCPConnector(BaseConnector):
 
         if self._ssl_context is None:
             if not self._verify_ssl:
-                sslcontext = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-                sslcontext.options |= ssl.OP_NO_SSLv2
-                sslcontext.options |= ssl.OP_NO_SSLv3
-                sslcontext.options |= _SSL_OP_NO_COMPRESSION
-                sslcontext.set_default_verify_paths()
+                sslcontext = no_verify_ssl_context
             else:
-                sslcontext = ssl.create_default_context()
+                sslcontext = default_ssl_context
             self._ssl_context = sslcontext
         return self._ssl_context
 
@@ -750,13 +755,9 @@ class TCPConnector(BaseConnector):
                 if req.verify_ssl is None:
                     sslcontext = self.ssl_context
                 elif req.verify_ssl:
-                    sslcontext = ssl.create_default_context()
+                    sslcontext = default_ssl_context
                 else:
-                    sslcontext = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-                    sslcontext.options |= ssl.OP_NO_SSLv2
-                    sslcontext.options |= ssl.OP_NO_SSLv3
-                    sslcontext.options |= _SSL_OP_NO_COMPRESSION
-                    sslcontext.set_default_verify_paths()
+                    sslcontext = no_verify_ssl_context
         else:
             sslcontext = None
         return sslcontext
